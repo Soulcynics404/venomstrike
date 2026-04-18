@@ -40,8 +40,30 @@ impl ScanReport {
         }
     }
 
+    
     pub fn finalize(&mut self) {
         self.end_time = Some(Utc::now());
+
+        // Deduplicate vulnerabilities by URL + title
+        self.vulnerabilities.dedup_by(|a, b| {
+            a.url == b.url && a.title == b.title && a.parameter == b.parameter
+        });
+
+        // Deduplicate CVE findings by CVE ID
+        self.cve_findings.dedup_by(|a, b| a.cve_id == b.cve_id);
+
+        // Deduplicate header findings
+        self.header_findings.dedup_by(|a, b| a.header_name == b.header_name);
+
+        // Fill empty impact fields
+        for vuln in &mut self.vulnerabilities {
+            if vuln.impact.is_empty() {
+                vuln.impact = default_impact(&vuln.vulnerability_type);
+            }
+            if vuln.description.is_empty() {
+                vuln.description = format!("{} was detected at {}", vuln.title, vuln.url);
+            }
+        }
     }
 
     pub fn total_findings(&self) -> usize {
@@ -58,13 +80,22 @@ impl ScanReport {
     }
 
     pub fn executive_summary(&self) -> ExecutiveSummary {
+        let duration = if let Some(end) = self.end_time {
+            let dur = end - self.start_time;
+            let total_secs = dur.num_seconds();
+            if total_secs >= 60 {
+                format!("{}m {}s", total_secs / 60, total_secs % 60)
+            } else {
+                format!("{}s", total_secs)
+            }
+        } else {
+            "In progress...".to_string()
+        };
+
         ExecutiveSummary {
             target: self.target.clone(),
             scan_date: self.start_time.format("%Y-%m-%d %H:%M UTC").to_string(),
-            duration: self.end_time.map(|e| {
-                let dur = e - self.start_time;
-                format!("{}m {}s", dur.num_minutes(), dur.num_seconds() % 60)
-            }).unwrap_or("N/A".to_string()),
+            duration,
             total_findings: self.total_findings(),
             critical: self.count_by_severity("CRITICAL"),
             high: self.count_by_severity("HIGH"),
@@ -354,3 +385,21 @@ pub const DEFAULT_METHODOLOGY: &str = r#"The assessment was conducted using Veno
 5. Manual verification of critical findings
 
 All testing was performed in accordance with OWASP Testing Guide v4 and PTES methodologies."#;
+
+fn default_impact(vuln_type: &str) -> String {
+    match vuln_type {
+        "SQL Injection" => "Database compromise, data theft, authentication bypass, potential RCE.".to_string(),
+        "Cross-Site Scripting (XSS)" => "Session hijacking, credential theft, phishing, malware distribution.".to_string(),
+        "Command Injection" => "Full server compromise, arbitrary command execution, data exfiltration.".to_string(),
+        "LFI" => "Sensitive file disclosure, source code exposure, potential RCE via log poisoning.".to_string(),
+        "RFI" => "Remote code execution, full server compromise.".to_string(),
+        "SSRF" => "Internal network scanning, cloud metadata theft, service abuse.".to_string(),
+        "SSTI" => "Remote code execution, server compromise.".to_string(),
+        "CORS Misconfiguration" => "Cross-origin data theft, unauthorized API access.".to_string(),
+        "Open Redirect" => "Phishing, OAuth token theft, malware distribution.".to_string(),
+        "CSRF" => "Unauthorized actions on behalf of authenticated users.".to_string(),
+        "Security Misconfiguration" => "Information disclosure, weakened security posture.".to_string(),
+        "SSL/TLS" => "Man-in-the-middle attacks, data interception.".to_string(),
+        _ => "Security impact depends on context. Review the finding details.".to_string(),
+    }
+}

@@ -1,8 +1,6 @@
-use std::sync::Arc;
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
 
-use crate::cli::Commands;
 use crate::config::AppConfig;
 use crate::core::rate_limiter::{create_rate_limiter, VenomRateLimiter};
 use crate::core::scope::ScopeEnforcer;
@@ -21,6 +19,8 @@ pub struct ScanEngine {
     session: SessionManager,
     scope: ScopeEnforcer,
     rate_limiter: VenomRateLimiter,
+    cookie: Option<String>,
+    auth: Option<String>,
 }
 
 impl ScanEngine {
@@ -50,10 +50,14 @@ impl ScanEngine {
             session,
             scope,
             rate_limiter,
+            cookie: None,
+            auth: None,
         })
     }
 
     pub fn with_auth(mut self, cookie: Option<String>, auth: Option<String>) -> VenomResult<Self> {
+        self.cookie = cookie.clone();
+        self.auth = auth.clone();
         self.session = SessionManager::new(
             self.config.scanning.timeout_secs,
             &self.config.scanning.user_agent,
@@ -101,7 +105,10 @@ impl ScanEngine {
             ).await?;
 
             for tech in &tech_results {
-                println!("  {} {} v{}", "→".green(), tech.name.white().bold(), tech.version.as_deref().unwrap_or("unknown").cyan());
+                println!("  {} {} v{} [{}%]", "→".green(),
+                    tech.name.white().bold(),
+                    tech.version.as_deref().unwrap_or("unknown").cyan(),
+                    tech.confidence);
             }
 
             report.technologies = tech_results;
@@ -126,7 +133,18 @@ impl ScanEngine {
                     "LOW" => finding.severity.green(),
                     _ => finding.severity.white(),
                 };
-                println!("  {} {} [{}] CVSS: {}", "⚠".red(), finding.cve_id.white().bold(), severity_colored, finding.cvss_score);
+                println!("  {} {} [{}] CVSS: {}", "⚠".red(),
+                    finding.cve_id.white().bold(), severity_colored, finding.cvss_score);
+
+                if !finding.exploits.is_empty() {
+                    for exploit in &finding.exploits {
+                        println!("    {} {} → {}", "💀".red(), exploit.id, exploit.url.cyan());
+                    }
+                }
+
+                if finding.is_kev {
+                    println!("    {} CISA Known Exploited Vulnerability!", "🚨".red().bold());
+                }
             }
 
             report.cve_findings = cve_results;
@@ -137,14 +155,14 @@ impl ScanEngine {
         if self.config.scanning.phases.contains(&"active".to_string()) {
             println!("\n{}", "═══ Phase 4: Active Vulnerability Scanning ═══".yellow().bold());
 
-            // Crawl the target first
             println!("  {} Crawling target...", "🕷".bold());
             let mut crawler = Crawler::new(
                 self.session.client().clone(),
                 self.scope.clone(),
                 self.rate_limiter.clone(),
                 self.config.target.max_depth,
-            );
+            ).with_auth_cookie(self.cookie.clone());
+
             let pages = crawler.crawl(target).await?;
             println!("  {} Discovered {} pages", "✓".green(), pages.len());
 
@@ -164,11 +182,18 @@ impl ScanEngine {
                     "INFO" => vuln.severity.blue(),
                     _ => vuln.severity.white(),
                 };
-                println!("  {} [{}] {} at {}", "🔥".bold(), severity_colored, vuln.title, vuln.url.cyan());
+                println!("  {} [{}] {} at {}", "🔥".bold(), severity_colored,
+                    vuln.title, vuln.url.cyan());
+                if let Some(ref payload) = vuln.payload {
+                    println!("    {} Payload: {}", "→".green(), payload.yellow());
+                }
             }
 
             report.vulnerabilities = vuln_results;
         }
+
+        // Finalize report with end time
+        report.finalize();
 
         // Phase 5: Report Generation
         if self.config.scanning.phases.contains(&"report".to_string()) {
@@ -182,13 +207,15 @@ impl ScanEngine {
         }
 
         println!("\n{}", "═══ Scan Complete ═══".green().bold());
+        let summary = report.executive_summary();
+        println!("  Duration: {}", summary.duration.cyan());
         println!("  Total findings: {}", report.total_findings());
         println!("  Critical: {} | High: {} | Medium: {} | Low: {} | Info: {}",
-            report.count_by_severity("CRITICAL").to_string().red().bold(),
-            report.count_by_severity("HIGH").to_string().red(),
-            report.count_by_severity("MEDIUM").to_string().yellow(),
-            report.count_by_severity("LOW").to_string().green(),
-            report.count_by_severity("INFO").to_string().blue(),
+            summary.critical.to_string().red().bold(),
+            summary.high.to_string().red(),
+            summary.medium.to_string().yellow(),
+            summary.low.to_string().green(),
+            summary.info.to_string().blue(),
         );
 
         Ok(report)
@@ -199,11 +226,11 @@ fn print_banner() {
     let banner = r#"
  ██╗   ██╗███████╗███╗   ██╗ ██████╗ ███╗   ███╗███████╗████████╗██████╗ ██╗██╗  ██╗███████╗
  ██║   ██║██╔════╝████╗  ██║██╔═══██╗████╗ ████║██╔════╝╚══██╔══╝██╔══██╗██║██║ ██╔╝██╔════╝
- ██║   ██║█████╗  ██╔██╗ ██║██║   ██║██╔████╔██║███████╗   ██║   ██████╔╝██║█████╔╝ █████╗  
- ╚██╗ ██╔╝██╔══╝  ██║╚██╗██║██║   ██║██║╚██╔╝██║╚════██║   ██║   ██╔══██╗██║██╔═██╗ ██╔══╝  
+ ██║   ██║█████╗  ██╔██╗ ██║██║   ██║██╔████╔██║███████╗   ██║   ██████╔╝██║█████╔╝ █████╗
+ ╚██╗ ██╔╝██╔══╝  ██║╚██╗██║██║   ██║██║╚██╔╝██║╚════██║   ██║   ██╔══██╗██║██╔═██╗ ██╔══╝
   ╚████╔╝ ███████╗██║ ╚████║╚██████╔╝██║ ╚═╝ ██║███████║   ██║   ██║  ██║██║██║  ██╗███████╗
    ╚═══╝  ╚══════╝╚═╝  ╚═══╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚══════╝
-                    Advanced Web Vulnerability Scanner & VAPT Reporter v1.0
+                    Advanced Web Vulnerability Scanner & VAPT Reporter v1.0.1
     "#;
     println!("{}", banner.red().bold());
 }

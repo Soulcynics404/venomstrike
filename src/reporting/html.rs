@@ -247,12 +247,23 @@ fn generate_vuln_html(vulns: &[crate::reporting::models::Vulnerability]) -> Stri
     vulns.iter().map(|v| {
         let sev_class = v.severity.to_lowercase();
         let param_html = v.parameter.as_ref().map(|p| {
-            format!("<div class='detail'><strong>Parameter:</strong> {}</div>", html_escape::encode_text(p))
+            format!("<div class='detail'><strong>Vulnerable Parameter:</strong> <code>{}</code></div>", html_escape::encode_text(p))
         }).unwrap_or_default();
 
         let payload_html = v.payload.as_ref().map(|p| {
-            format!("<div class='detail'><strong>Payload:</strong> <span class='evidence'>{}</span></div>", html_escape::encode_text(p))
+            format!(r#"<div class='detail'><strong>🎯 Payload That Found Bug:</strong>
+            <div class='evidence' style='background: #1a0000; border: 1px solid #ff4444; color: #ff6b6b; padding: 12px; font-size: 1.05em;'>{}</div></div>"#,
+                html_escape::encode_text(p))
         }).unwrap_or_default();
+
+        let refs_html = if !v.references.is_empty() {
+            let links: String = v.references.iter().map(|r| {
+                format!("<li><a href='{}' target='_blank'>{}</a></li>", r, html_escape::encode_text(r))
+            }).collect::<Vec<_>>().join("");
+            format!("<div class='detail'><strong>📚 References & Exploit Links:</strong><ul>{}</ul></div>", links)
+        } else {
+            String::new()
+        };
 
         format!(r#"<div class="finding {sev_class}">
     <h4><span class="severity-badge {sev_class}">{severity}</span> {title}</h4>
@@ -263,6 +274,7 @@ fn generate_vuln_html(vulns: &[crate::reporting::models::Vulnerability]) -> Stri
     <div class="detail"><strong>Evidence:</strong> <div class="evidence">{evidence}</div></div>
     <div class="detail"><strong>Impact:</strong> {impact}</div>
     <div class="detail"><strong>Remediation:</strong><pre style="white-space: pre-wrap;">{remediation}</pre></div>
+    {refs}
 </div>"#,
             sev_class = sev_class,
             severity = v.severity,
@@ -276,6 +288,7 @@ fn generate_vuln_html(vulns: &[crate::reporting::models::Vulnerability]) -> Stri
             evidence = html_escape::encode_text(&v.evidence),
             impact = html_escape::encode_text(&v.impact),
             remediation = html_escape::encode_text(&v.remediation),
+            refs = refs_html,
         )
     }).collect::<Vec<_>>().join("\n")
 }

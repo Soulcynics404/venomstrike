@@ -1,6 +1,6 @@
 [package]
 name = "venomstrike"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Soulcynics404"]
 description = "Advanced Web Vulnerability Scanner & VAPT Reporter"

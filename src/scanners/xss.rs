@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use regex::Regex;
 use std::path::{Path, PathBuf};
 use crate::scanners::traits::VulnerabilityScanner;
 use crate::core::crawler::CrawledPage;
@@ -17,7 +16,8 @@ impl XssScanner {
 
     fn load_payloads(&self) -> Vec<String> {
         if let Ok(content) = std::fs::read_to_string(&self.payloads_path) {
-            content.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty() && !l.starts_with('#')).collect()
+            content.lines().map(|l| l.trim().to_string())
+                .filter(|l| !l.is_empty() && !l.starts_with('#')).collect()
         } else {
             default_xss_payloads()
         }
@@ -36,68 +36,89 @@ impl VulnerabilityScanner for XssScanner {
     ) -> VenomResult<Vec<Vulnerability>> {
         let mut vulns = Vec::new();
         let payloads = self.load_payloads();
+        let mut tested = std::collections::HashSet::new();
 
         for page in pages {
+            let cookie = page.auth_cookie.clone();
+
             // Test URL parameters
             for (param_name, _) in &page.params {
-                for payload in &payloads {
-                    let test_url = inject_param_xss(&page.url, param_name, payload);
+                let test_key = format!("xss:{}:{}", page.url, param_name);
+                if tested.contains(&test_key) { continue; }
 
-                    if let Ok(resp) = client.get(&test_url).send().await {
+                for payload in &payloads {
+                    let test_url = inject_param(&page.url, param_name, payload);
+
+                    let mut req = client.get(&test_url);
+                    if let Some(ref c) = cookie { req = req.header("Cookie", c); }
+
+                    if let Ok(resp) = req.send().await {
                         if let Ok(body) = resp.text().await {
                             if body.contains(payload) {
+                                tested.insert(test_key.clone());
                                 vulns.push(create_xss_vuln(
                                     &page.url, param_name, payload,
                                     "Reflected XSS", "HIGH",
-                                    &format!("Payload reflected without encoding: {}", payload),
+                                    &format!("Payload reflected without encoding in response body: {}", payload),
                                 ));
                                 break;
                             }
 
                             let decoded = html_decode(payload);
-                            if body.contains(&decoded) {
+                            if decoded != *payload && body.contains(&decoded) {
+                                tested.insert(test_key.clone());
                                 vulns.push(create_xss_vuln(
                                     &page.url, param_name, payload,
                                     "Reflected XSS (HTML Decoded)", "HIGH",
-                                    "Payload reflected after HTML decoding",
+                                    &format!("Payload reflected after HTML decoding: {}", decoded),
                                 ));
                                 break;
                             }
                         }
                     }
+                }
 
-                    // Test encoded variants
-                    let encoded_payloads = vec![
+                if tested.contains(&test_key) { continue; }
+
+                // Try encoding bypass
+                for payload in payloads.iter().take(5) {
+                    let encoded_variants = vec![
                         urlencoding::encode(payload).to_string(),
                         payload.replace("<", "%3C").replace(">", "%3E"),
-                        payload.replace("\"", "&quot;"),
                         double_url_encode(payload),
                     ];
 
-                    for enc_payload in &encoded_payloads {
-                        let test_url = inject_param_xss(&page.url, param_name, enc_payload);
-                        if let Ok(resp) = client.get(&test_url).send().await {
+                    for enc_payload in &encoded_variants {
+                        let test_url = inject_param(&page.url, param_name, enc_payload);
+
+                        let mut req = client.get(&test_url);
+                        if let Some(ref c) = cookie { req = req.header("Cookie", c); }
+
+                        if let Ok(resp) = req.send().await {
                             if let Ok(body) = resp.text().await {
                                 if body.contains(payload) || body.contains(&html_decode(payload)) {
+                                    tested.insert(test_key.clone());
                                     vulns.push(create_xss_vuln(
                                         &page.url, param_name, enc_payload,
                                         "Reflected XSS (Encoding Bypass)", "HIGH",
-                                        "Payload reflected after encoding bypass",
+                                        &format!("Payload reflected after encoding bypass. Original: {} | Encoded: {}", payload, enc_payload),
                                     ));
                                     break;
                                 }
                             }
                         }
                     }
+                    if tested.contains(&test_key) { break; }
                 }
             }
 
             // Test forms
             for form in &page.forms {
                 for input in &form.inputs {
-                    if input.input_type == "hidden" || input.input_type == "submit" {
-                        continue;
-                    }
+                    if input.input_type == "hidden" || input.input_type == "submit" { continue; }
+
+                    let form_key = format!("xss:form:{}:{}", form.action, input.name);
+                    if tested.contains(&form_key) { continue; }
 
                     for payload in payloads.iter().take(5) {
                         let mut form_data = std::collections::HashMap::new();
@@ -110,25 +131,25 @@ impl VulnerabilityScanner for XssScanner {
                         }
 
                         let result = if form.method == "POST" {
-                            client.post(&form.action).form(&form_data).send().await
+                            let mut req = client.post(&form.action).form(&form_data);
+                            if let Some(ref c) = cookie { req = req.header("Cookie", c); }
+                            req.send().await
                         } else {
-                            let mut url = url::Url::parse(&form.action).unwrap_or_else(|_| {
-                                url::Url::parse(&page.url).unwrap()
-                            });
-                            for (k, v) in &form_data {
-                                url.query_pairs_mut().append_pair(k, v);
-                            }
-                            client.get(url.as_str()).send().await
+                            let mut url = url::Url::parse(&form.action).unwrap_or_else(|_| url::Url::parse(&page.url).unwrap());
+                            for (k, v) in &form_data { url.query_pairs_mut().append_pair(k, v); }
+                            let mut req = client.get(url.as_str());
+                            if let Some(ref c) = cookie { req = req.header("Cookie", c); }
+                            req.send().await
                         };
 
                         if let Ok(resp) = result {
                             if let Ok(body) = resp.text().await {
                                 if body.contains(payload) {
+                                    tested.insert(form_key.clone());
                                     vulns.push(create_xss_vuln(
                                         &form.action, &input.name, payload,
-                                        &format!("Reflected XSS ({} Form)", form.method),
-                                        "HIGH",
-                                        &format!("Payload reflected in form response: {}", payload),
+                                        &format!("Reflected XSS ({} Form)", form.method), "HIGH",
+                                        &format!("Payload '{}' reflected in {} form response at input '{}'", payload, form.method, input.name),
                                     ));
                                     break;
                                 }
@@ -143,33 +164,23 @@ impl VulnerabilityScanner for XssScanner {
     }
 }
 
-fn inject_param_xss(url: &str, param: &str, payload: &str) -> String {
+fn inject_param(url: &str, param: &str, payload: &str) -> String {
     if let Ok(mut parsed) = url::Url::parse(url) {
         let pairs: Vec<(String, String)> = parsed.query_pairs()
             .map(|(k, v)| {
-                if k == param {
-                    (k.to_string(), payload.to_string())
-                } else {
-                    (k.to_string(), v.to_string())
-                }
+                if k == param { (k.to_string(), payload.to_string()) }
+                else { (k.to_string(), v.to_string()) }
             }).collect();
         parsed.query_pairs_mut().clear();
-        for (k, v) in pairs {
-            parsed.query_pairs_mut().append_pair(&k, &v);
-        }
+        for (k, v) in pairs { parsed.query_pairs_mut().append_pair(&k, &v); }
         parsed.to_string()
-    } else {
-        url.to_string()
-    }
+    } else { url.to_string() }
 }
 
 fn html_decode(input: &str) -> String {
-    input.replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&#x27;", "'")
+    input.replace("&lt;", "<").replace("&gt;", ">")
+        .replace("&amp;", "&").replace("&quot;", "\"")
+        .replace("&#39;", "'").replace("&#x27;", "'")
 }
 
 fn double_url_encode(input: &str) -> String {
@@ -183,20 +194,21 @@ fn create_xss_vuln(url: &str, param: &str, payload: &str, title: &str, severity:
     vuln.payload = Some(payload.to_string());
     vuln.evidence = evidence.to_string();
     vuln.description = format!(
-        "A reflected Cross-Site Scripting (XSS) vulnerability was found in the '{}' parameter. \
-         User-supplied input is reflected in the response without proper output encoding.",
-        param
+        "Reflected XSS found in parameter '{}'. The payload '{}' was reflected in the server response \
+         without proper output encoding, allowing script execution in victims' browsers.",
+        param, payload
     );
     vuln.impact = "An attacker can inject malicious scripts that execute in victims' browsers, \
          enabling session hijacking, credential theft, defacement, or malware distribution.".to_string();
-    vuln.remediation = "1. Implement context-aware output encoding (HTML, JavaScript, URL, CSS)\n\
+    vuln.remediation = "1. Implement context-aware output encoding (HTML, JS, URL, CSS)\n\
          2. Use Content-Security-Policy (CSP) headers\n\
          3. Validate and sanitize all user input\n\
          4. Use HTTPOnly and Secure flags on cookies\n\
-         5. Consider using frameworks with auto-escaping (React, Angular)".to_string();
+         5. Consider frameworks with auto-escaping (React, Angular)".to_string();
     vuln.cwe_id = Some("CWE-79".to_string());
     vuln.references = vec![
         "https://owasp.org/www-community/attacks/xss/".to_string(),
+        "https://portswigger.net/web-security/cross-site-scripting".to_string(),
         "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html".to_string(),
     ];
     vuln
@@ -210,14 +222,9 @@ fn default_xss_payloads() -> Vec<String> {
         "'\"><script>alert('XSS')</script>",
         "<body onload=alert('XSS')>",
         "<iframe src=\"javascript:alert('XSS')\">",
-        "'-alert('XSS')-'",
         "\"><img src=x onerror=alert(1)>",
         "<details open ontoggle=alert(1)>",
-        "javascript:alert('XSS')",
         "<input onfocus=alert(1) autofocus>",
         "<marquee onstart=alert(1)>",
-        "<div style=\"background:url(javascript:alert(1))\">",
-        "{{constructor.constructor('alert(1)')()}}",
-        "${alert(1)}",
     ].iter().map(|s| s.to_string()).collect()
 }
