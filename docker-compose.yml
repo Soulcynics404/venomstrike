@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # DVWA - Damn Vulnerable Web Application
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: venomstrike-dvwa
+    ports:
+      - "8081:80"
+    environment:
+      - MYSQL_PASS=password
+    restart: unless-stopped
+    networks:
+      - venomstrike-lab
+
+  # WebGoat - OWASP Vulnerable App
+  webgoat:
+    image: webgoat/webgoat
+    container_name: venomstrike-webgoat
+    ports:
+      - "8082:8080"
+      - "9090:9090"
+    environment:
+      - WEBGOAT_PORT=8080
+    restart: unless-stopped
+    networks:
+      - venomstrike-lab
+
+  # Juice Shop - Modern Vulnerable App
+  juiceshop:
+    image: bkimminich/juice-shop
+    container_name: venomstrike-juiceshop
+    ports:
+      - "8083:3000"
+    restart: unless-stopped
+    networks:
+      - venomstrike-lab
+
+  # bWAPP - Buggy Web Application
+  bwapp:
+    image: raesene/bwapp
+    container_name: venomstrike-bwapp
+    ports:
+      - "8084:80"
+    restart: unless-stopped
+    networks:
+      - venomstrike-lab
+
+  # Hackazon - Vulnerable E-commerce
+  hackazon:
+    image: ianwijaya/hackazon
+    container_name: venomstrike-hackazon
+    ports:
+      - "8085:80"
+    restart: unless-stopped
+    networks:
+      - venomstrike-lab
+
+networks:
+  venomstrike-lab:
+    driver: bridge

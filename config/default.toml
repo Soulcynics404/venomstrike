@@ -1,0 +1,39 @@
+# VenomStrike Default Configuration
+
+[target]
+url = ""
+scope = []
+exclude = ["/logout", "/signout"]
+max_depth = 3
+
+[scanning]
+threads = 10
+timeout_secs = 30
+follow_redirects = true
+max_redirects = 5
+user_agent = "VenomStrike/1.0 Security Scanner"
+phases = ["recon", "fingerprint", "cve", "active", "report"]
+enable_nmap = false
+
+[rate_limit]
+requests_per_second = 10
+burst_size = 20
+
+[output]
+directory = "./reports"
+formats = ["html", "json"]
+verbose = false
+
+[api_keys]
+# Get free API key from https://nvd.nist.gov/developers/request-an-api-key
+# nvd_api_key = "your-key-here"
+
+[payloads]
+xss = "./payloads/xss.txt"
+sqli = "./payloads/sqli.txt"
+lfi = "./payloads/lfi.txt"
+ssti = "./payloads/ssti.txt"
+ssrf = "./payloads/ssrf.txt"
+cmdi = "./payloads/cmdi.txt"
+subdomains = "./payloads/subdomains.txt"
+open_redirect = "./payloads/open_redirect.txt"

