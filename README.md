@@ -256,9 +256,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Built with Rust by [Soulcynics404](https://github.com/Soulcynics404)**
-
-Built with ❤️ and 🦀 Rust by Soulcynics404
+**Built with ❤️ and 🦀 Rust by [Soulcynics404](https://github.com/Soulcynics404)**
 
 If you find this useful, please ⭐ star the repo — it helps others discover it!
 
