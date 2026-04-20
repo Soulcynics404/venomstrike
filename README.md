@@ -4,306 +4,262 @@
 
 ### Advanced Web Vulnerability Scanner & VAPT Reporter
 
-![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
-![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-blue?style=for-the-badge)
+[![Rust](https://img.shields.io/badge/Built%20with-Rust-000000?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-1.0.1-red?style=for-the-badge)](https://github.com/Soulcynics404/venomstrike/releases)
+[![Stars](https://img.shields.io/github/stars/Soulcynics404/venomstrike?style=for-the-badge&color=yellow)](https://github.com/Soulcynics404/venomstrike/stargazers)
 
-**A comprehensive command-line web vulnerability scanner built in Rust that performs automated security assessments and generates professional VAPT reports.**
+**A comprehensive command-line web vulnerability scanner built from scratch in Rust that performs automated security assessments across 5 phases and generates professional VAPT reports.**
 
-[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Architecture](#architecture) • [Reports](#reports) • [Contributing](#contributing)
+*No external scanner wrappers. 100% custom-built detection engine with async multi-threaded architecture.*
+
+[Quick Start](#quick-start) | [Screenshots](#screenshots) | [Features](#features) | [Architecture](#architecture) | [Reports](#report-formats) | [Contributing](#contributing)
 
 </div>
 
 ---
 
-## 🎯 Features
+## Screenshots
 
-### Scanning Pipeline
-| Phase | Description |
-|-------|-------------|
-| **Phase 1: Reconnaissance** | DNS enumeration, subdomain discovery, port scanning (optional Nmap integration) |
-| **Phase 2: Fingerprinting** | Web server, CMS, programming language, JS libraries, WAF detection |
-| **Phase 3: CVE Intelligence** | NVD API 2.0 + ExploitDB + EPSS scores + CISA KEV catalog |
-| **Phase 4: Active Scanning** | Custom-built scanners for 11+ vulnerability types |
-| **Phase 5: VAPT Reporting** | HTML, JSON, PDF, and SARIF report generation |
+<div align="center">
+<table>
+<tr>
+<td align="center" width="50%">
 
-### Vulnerability Scanners
-- ✅ SQL Injection (error-based, boolean-blind, time-based)
-- ✅ Cross-Site Scripting (XSS) with encoding bypass
-- ✅ Server-Side Request Forgery (SSRF)
-- ✅ Local/Remote File Inclusion (LFI/RFI)
-- ✅ Server-Side Template Injection (SSTI)
-- ✅ OS Command Injection
-- ✅ CORS Misconfiguration
-- ✅ Open Redirect
-- ✅ CSRF Detection
-- ✅ Security Header Analysis
-- ✅ SSL/TLS Certificate Checks
+**Terminal Scan Output**
 
-### CVE Intelligence Engine (Core Differentiator)
-- 🔍 **NIST NVD API 2.0** — CVE lookup by CPE string
-- 💀 **ExploitDB Integration** — Maps CVEs to available exploits
-- 📊 **EPSS Scores** — Exploitation probability from FIRST.org
-- 🚨 **CISA KEV Catalog** — Known Exploited Vulnerabilities
-- 🛡️ **Remediation Guidance** — Prioritized fix recommendations
+<img src="docs/screenshots/scan_recon.png" alt="Scan Output" width="400">
 
-### Report Formats
-- 📄 **HTML** — Interactive report with severity charts and executive summary
-- 📋 **JSON** — Machine-readable for CI/CD pipeline integration
-- 📑 **PDF** — Client-ready professional format
-- 🔗 **SARIF** — GitHub Security tab integration
+</td>
+<td align="center" width="50%">
+
+**CVE Intelligence Engine**
+
+<img src="docs/screenshots/cve_lookup.png" alt="CVE Lookup" width="400">
+
+</td>
+</tr>
+<tr>
+<td align="center" width="50%">
+
+**VAPT Report - Executive Summary**
+
+<img src="docs/screenshots/report_summary.png" alt="Report Summary" width="400">
+
+</td>
+<td align="center" width="50%">
+
+**VAPT Report - Vulnerability Details**
+
+<img src="docs/screenshots/report_findings.png" alt="Report Findings" width="400">
+
+</td>
+</tr>
+</table>
+</div>
 
 ---
 
-## 📦 Installation
+## Features
 
-### Prerequisites
-- Rust 1.70+ (install via [rustup](https://rustup.rs))
-- OpenSSL development libraries
-- Optional: Nmap, wkhtmltopdf, Docker
+### 5-Phase Scanning Pipeline
 
-### Build from Source
+| Phase | Name | What It Does |
+|-------|------|-------------|
+| 1 | **Reconnaissance** | DNS enumeration, subdomain discovery, port scanning (optional Nmap) |
+| 2 | **Fingerprinting** | Web server, CMS, JS libraries, WAF detection |
+| 3 | **CVE Intelligence** | NVD API 2.0 + ExploitDB + EPSS scores + CISA KEV catalog |
+| 4 | **Active Scanning** | Custom-built scanners for 11+ vulnerability types |
+| 5 | **VAPT Reporting** | HTML, JSON, PDF, and SARIF report generation |
+
+### Custom-Built Vulnerability Scanners
+
+| Scanner | Detection Methods | Severity |
+|---------|------------------|----------|
+| SQL Injection | Error-based, Boolean-blind, Time-based | Critical |
+| Cross-Site Scripting | Reflected XSS with encoding bypass | High |
+| SSRF | Internal network, Cloud metadata, Protocol smuggling | High |
+| LFI/RFI | Path traversal, PHP wrappers, Log poisoning | Critical |
+| SSTI | Jinja2, Twig, FreeMarker, ERB detection | Critical |
+| Command Injection | Separator-based, Time-based, Nested | Critical |
+| CORS Misconfiguration | Origin reflection, Null origin, Prefix bypass | Medium |
+| Open Redirect | URL parsing bypass, Protocol-relative | Medium |
+| CSRF Detection | Missing tokens, SameSite analysis | Medium |
+| Security Headers | 10+ header checks (HSTS, CSP, X-Frame, etc.) | Medium |
+| SSL/TLS | Certificate validation, Expiry, Protocol checks | High |
+
+### CVE Intelligence Engine
+
+For each detected technology, VenomStrike queries multiple intelligence sources:
+
+- **NIST NVD API 2.0** with proper CPE string mapping
+- **ExploitDB** local CSV database for available exploits
+- **EPSS Scores** from FIRST.org showing exploitation probability
+- **CISA KEV Catalog** for known exploited vulnerabilities
+
+Each CVE finding includes CVE ID, CVSS Score, description, available exploits with ExploitDB links, EPSS probability, CISAKEV status, and prioritized remediation steps.
+
+---
+
+## Report Formats
+
+| Format | Purpose | Use Case |
+|--------|---------|----------|
+| **HTML** | Interactive dark-themed report | Client presentations |
+| **JSON** | Machine-readable structured data | CI/CD pipelines |
+| **PDF** | Professional printable document | Formal deliverables |
+| **SARIF** | GitHub Security tab integration | DevSecOps |
+
+Report highlights include executive summary, all findings sorted by severity, exact payload that found each bug highlighted in red, CVE references with exploit links, and prioritized remediation roadmap.
+
+---
+
+## Quick Start
+
+Rust 1.70+ and OpenSSL dev libraries required.
 
 ```bash
-# Clone the repository
 git clone https://github.com/Soulcynics404/venomstrike.git
 cd venomstrike
-
-# Install system dependencies (Kali Linux / Debian)
-sudo apt install -y build-essential pkg-config libssl-dev wkhtmltopdf nmap
-
-# Build
+sudo apt install -y build-essential pkg-config libssl-dev
 cargo build --release
-
-# Install globally (optional)
-sudo cp target/release/venomstrike /usr/local/bin/
 ```
 
-# Docker
+Full scan:
+
+```bash
+./target/release/venomstrike scan --target https://example.com --formats html,json,sarif
+```
+
+CVE lookup:
+
+```bash
+./target/release/venomstrike cve-lookup --technology apache --version 2.4.25
+```
+
+Advanced:
+
+```bash
+./target/release/venomstrike scan \
+    --target https://example.com \
+    --threads 20 \
+    --rate-limit 15 \
+    --phases recon,fingerprint,cve,active,report \
+    --formats html,json,pdf,sarif \
+    --nmap \
+    --nvd-key YOUR_NVD_API_KEY \
+    --verbose
+```
+
+Docker:
+
 ```bash
 docker build -t venomstrike .
 docker run venomstrike scan --target https://example.com
 ```
 
-## 🚀 Usage
-### Full Scan
-```bash
-venomstrike scan --target https://example.com --formats html,json,sarif
-```
-
-## Scan with All Options
-
-```bash
-venomstrike scan \
-  --target https://example.com \
-  --threads 20 \
-  --rate-limit 15 \
-  --phases recon,fingerprint,cve,active,report \
-  --formats html,json,pdf,sarif \
-  --output ./reports \
-  --nmap \
-  --nvd-key YOUR_NVD_API_KEY \
-  --cookie "session=abc123" \
-  --verbose
-```
-
-## Reconnaissance Only
-```bash
-venomstrike recon --target https://example.com --nmap
-```
-
-## CVE Lookup
-```bash
-venomstrike cve-lookup --technology apache --version 2.4.51
-```
-
-## Generate Report from Previous Scan
-```bash
-venomstrike report --input ./reports/scan_results.json --formats html,pdf
-```
-
 ---
 
-## Command Reference
+## Architecture
 
-| Command | Description |
-|---------|-------------|
-| `scan` | Full vulnerability scan |
-| `recon` | Reconnaissance phase only |
-| `cve-lookup` | CVE lookup for a specific technology |
-| `report` | Generate reports from JSON results |
-
-### Key Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--target` | Target URL | Required |
-| `--threads` | Concurrent threads | 10 |
-| `--rate-limit` | Requests per second | 10 |
-| `--phases` | Scan phases to run | all |
-| `--formats` | Report output formats | html,json |
-| `--nmap` | Enable Nmap port scanning | false |
-| `--nvd-key` | NVD API key for faster lookups | None |
-| `--proxy` | HTTP/SOCKS5 proxy | None |
-| `--cookie` | Session cookie | None |
-| `--auth` | Authorization header | None |
-| `--verbose` | Detailed output | false |
-
----
-
-## 🏗️ Architecture
-
-```text
+```
 venomstrike/
-├── src/
-│   ├── main.rs           # Entry point
-│   ├── lib.rs            # Library root
-│   ├── cli.rs            # CLI argument parsing (clap)
-│   ├── config.rs         # Configuration management
-│   ├── error.rs          # Custom error types
-│   ├── core/
-│   │   ├── engine.rs     # Main scan orchestrator
-│   │   ├── rate_limiter.rs # Request rate limiting
-│   │   ├── scope.rs      # Scope enforcement
-│   │   ├── session.rs    # HTTP session management
-│   │   └── crawler.rs    # Web crawler
-│   ├── recon/            # Phase 1: Reconnaissance
-│   ├── fingerprint/      # Phase 2: Technology detection
-│   ├── cve/              # Phase 3: CVE intelligence
-│   ├── scanners/         # Phase 4: Vulnerability scanners
-│   │   ├── traits.rs     # Scanner plugin trait
-│   │   ├── sqli.rs       # SQL Injection
-│   │   ├── xss.rs        # Cross-Site Scripting
-│   │   └── ...           # Additional scanners
-│   ├── reporting/        # Phase 5: Report generation
-│   └── utils/            # Utility functions
-├── payloads/             # External payload files
-├── config/               # Configuration files
-├── data/                 # CVE databases
-└── tests/                # Test suite
+  src/
+    main.rs              Entry point and CLI routing
+    core/                Engine, crawler, rate limiter, scope, session
+    recon/               Phase 1: DNS, subdomains, ports
+    fingerprint/         Phase 2: Server, CMS, WAF, tech
+    cve/                 Phase 3: NVD, ExploitDB, EPSS, KEV
+    scanners/            Phase 4: SQLi, XSS, SSRF, LFI, SSTI, CMDi, etc.
+    reporting/           Phase 5: HTML, JSON, PDF, SARIF
+  payloads/              External payload files
+  config/                Configuration files
+  tests/                 Integration and unit tests
 ```
 
 ### Plugin Architecture
 
-Adding a new scanner is simple — implement the `VulnerabilityScanner` trait:
-
-```rust
-use async_trait::async_trait;
-use crate::scanners::traits::VulnerabilityScanner;
-
-pub struct MyCustomScanner;
-
-#[async_trait]
-impl VulnerabilityScanner for MyCustomScanner {
-    fn name(&self) -> &str { "My Custom Scanner" }
-    fn description(&self) -> &str { "Checks for custom vulnerability" }
-
-    async fn scan(
-        &self,
-        pages: &[CrawledPage],
-        client: &reqwest::Client,
-    ) -> VenomResult<Vec<Vulnerability>> {
-        // Your scanning logic here
-        Ok(vec![])
-    }
-}
-```
-
-Then register it in `src/scanners/mod.rs`.
+Adding a new scanner requires implementing one trait and registering it in mod.rs.
 
 ---
 
-## 🧪 Testing
+## Configuration
 
-### Run Tests
-
-```bash
-cargo test
-```
-
-### Test Against Vulnerable Applications
-
-```bash
-# Start vulnerable apps
-docker-compose up -d
-
-# Scan DVWA
-venomstrike scan --target http://localhost:8081 --formats html
-
-# Scan WebGoat
-venomstrike scan --target http://localhost:8082/WebGoat --formats html
-
-# Scan Juice Shop
-venomstrike scan --target http://localhost:8083 --formats html
-
-# Stop apps
-docker-compose down
-```
+| Option | Description | Default |
+|--------|-------------|---------|
+| --target | Target URL | Required |
+| --threads | Concurrent threads | 10 |
+| --rate-limit | Requests per second | 10 |
+| --phases | Scan phases to run | all |
+| --formats | Report formats | html,json |
+| --nmap | Enable Nmap port scanning | false |
+| --nvd-key | NVD API key | None |
+| --proxy | HTTP/SOCKS5 proxy | None |
+| --cookie | Session cookie | None |
+| --verbose | Debug output | false |
 
 ---
 
-## 🔑 Environment Variables
+## Tech Stack
 
-| Variable | Description |
-|----------|-------------|
-| `NVD_API_KEY` | NIST NVD API key for faster CVE lookups |
-
-Get a free NVD API key: https://nvd.nist.gov/developers/request-an-api-key
-
----
-
-## 📊 Sample Report Output
-
-```text
-┳ VenomStrike v1.0.0
-🎯 Target: https://example.com
-
-══ Phase 1: Reconnaissance ══
-  → DNS: A → 93.184.216.34
-  → Found 5 subdomains
-  → Found 3 open ports
-
-══ Phase 2: Technology Fingerprinting ══
-  → Apache v2.4.51
-  → PHP v8.1.0
-  → WordPress v6.4.2
-
-══ Phase 3: CVE Intelligence Engine ══
-  ⚠ CVE-2023-25690 [CRITICAL] CVSS: 9.8
-  ⚠ CVE-2023-31122 [HIGH] CVSS: 7.5
-
-══ Phase 4: Active Vulnerability Scanning ══
-  🔥 [CRITICAL] SQL Injection at /page?id=1
-  🔥 [HIGH] Reflected XSS at /search?q=test
-
-══ Scan Complete ══
-  Critical: 2 | High: 3 | Medium: 5 | Low: 8 | Info: 4
-```
+| Component | Technology |
+|-----------|-----------|
+| Language | Rust |
+| Async Runtime | Tokio |
+| HTTP Client | Reqwest |
+| CLI | Clap v4 |
+| HTML Parsing | Scraper + html5ever |
+| DNS | trust-dns-resolver |
+| Rate Limiting | Governor |
+| TLS Analysis | native-tls + x509-parser |
 
 ---
 
-## ⚠️ Disclaimer
+## Changelog
 
-**VenomStrike is designed for authorized security testing only.** Always obtain proper written authorization before scanning any target. Unauthorized scanning is illegal and unethical. The authors are not responsible for any misuse of this tool.
+### v1.0.1 (Latest)
+- Fixed CVE Engine with proper CPE mapping
+- Added authentication cookie support to all scanners
+- Fixed false positives in CMS fingerprinting
+- CVE links now include ExploitDB, MITRE, GitHub Advisory, PacketStorm
+- VAPT report highlights exact payload that found each bug
+- Finding deduplication and scan duration display fixed
+
+### v1.0.0
+- Initial release with 5-phase scanning pipeline
+- 11 custom vulnerability scanners
+- CVE Intelligence Engine
+- VAPT report generation
 
 ---
 
-## 📜 License
+## Legal Disclaimer
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**VenomStrike is designed for authorized security testing only.** Always obtain proper written authorization before scanning any target. Unauthorized scanning is illegal and unethical.
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please:
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/new-scanner`)
-3. Commit your changes (`git commit -am 'Add new scanner'`)
-4. Push to the branch (`git push origin feature/new-scanner`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push and open a Pull Request
 
 ---
 
-<p align="center">Built with ❤️ and � Rust by <a href="https://github.com/Soulcynics404">Soulcynics404</a></p>
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**Built with Rust by [Soulcynics404](https://github.com/Soulcynics404)**
+
+If you find this useful, please star the repo!
+
+[![GitHub](https://img.shields.io/badge/GitHub-Soulcynics404-181717?style=for-the-badge&logo=github)](https://github.com/Soulcynics404)
+
+</div>
