@@ -19,14 +19,14 @@
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
 <div align="center">
 <table>
 <tr>
 <td align="center" width="50%">
 
-**Terminal Scan Output**
+**🔍 Terminal Scan Output**
 
 <img src="docs/screenshots/scan_recon.png" alt="Scan Output" width="400">
 
@@ -60,9 +60,9 @@
 
 ---
 
-## Features
+## ✨ Features
 
-### 5-Phase Scanning Pipeline
+### 🚀 5-Phase Scanning Pipeline
 
 | Phase | Name | What It Does |
 |-------|------|-------------|
@@ -101,7 +101,7 @@ Each CVE finding includes CVE ID, CVSS Score, description, available exploits wi
 
 ---
 
-## Report Formats
+## 📁 Report Formats
 
 | Format | Purpose | Use Case |
 |--------|---------|----------|
@@ -239,7 +239,7 @@ Adding a new scanner requires implementing one trait and registering it in mod.r
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -248,7 +248,7 @@ Adding a new scanner requires implementing one trait and registering it in mod.r
 
 ---
 
-## License
+## 📝 License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
@@ -256,7 +256,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Built with ❤️ and 🦀 Rust by [Soulcynics404](https://github.com/Soulcynics404)**
+**Built with ❤️ and 🦀 Rust by [Soulcynics404](https://github.com/Soulcynics404)**v
 
 If you find this useful, please ⭐ star the repo — it helps others discover it!
 
