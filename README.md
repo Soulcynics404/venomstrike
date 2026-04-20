@@ -8,6 +8,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
 [![Version](https://img.shields.io/badge/Version-1.0.1-red?style=for-the-badge)](https://github.com/Soulcynics404/venomstrike/releases)
 [![GitHub](https://img.shields.io/badge/Author-Soulcynics404-purple?style=for-the-badge&logo=github)](https://github.com/Soulcynics404)
+
 <img src="https://img.shields.io/github/last-commit/Soulcynics404/packetviper" />
 
 **A comprehensive command-line web vulnerability scanner built from scratch in Rust that performs automated security assessments across 5 phases and generates professional VAPT reports.**
