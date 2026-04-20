@@ -258,7 +258,9 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **Built with Rust by [Soulcynics404](https://github.com/Soulcynics404)**
 
-If you find this useful, please star the repo!
+Built with ❤️ and 🦀 Rust by Soulcynics404
+
+If you find this useful, please ⭐ star the repo — it helps others discover it!
 
 [![GitHub](https://img.shields.io/badge/GitHub-Soulcynics404-181717?style=for-the-badge&logo=github)](https://github.com/Soulcynics404)
 
