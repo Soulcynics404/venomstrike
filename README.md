@@ -9,7 +9,7 @@
 [![Version](https://img.shields.io/badge/Version-1.0.1-red?style=for-the-badge)](https://github.com/Soulcynics404/venomstrike/releases)
 [![GitHub](https://img.shields.io/badge/Author-Soulcynics404-purple?style=for-the-badge&logo=github)](https://github.com/Soulcynics404)
 
-<img src="https://img.shields.io/github/last-commit/Soulcynics404/packetviper" />
+<img src="https://img.shields.io/github/last-commit/Soulcynics404/venomstrike" />
 
 **A comprehensive command-line web vulnerability scanner built from scratch in Rust that performs automated security assessments across 5 phases and generates professional VAPT reports.**
 
@@ -71,7 +71,7 @@
 | 1 | **Reconnaissance** | DNS enumeration, subdomain discovery, port scanning (optional Nmap) |
 | 2 | **Fingerprinting** | Web server, CMS, JS libraries, WAF detection |
 | 3 | **CVE Intelligence** | NVD API 2.0 + ExploitDB + EPSS scores + CISA KEV catalog |
-| 4 | **Active Scanning** | Custom-built scanners for 11+ vulnerability types |
+| 4 | **Active Scanning** | Custom-built scanners for 11 vulnerability types |
 | 5 | **VAPT Reporting** | HTML, JSON, PDF, and SARIF report generation |
 
 ### Custom-Built Vulnerability Scanners
@@ -99,7 +99,7 @@ For each detected technology, VenomStrike queries multiple intelligence sources:
 - **EPSS Scores** from FIRST.org showing exploitation probability
 - **CISA KEV Catalog** for known exploited vulnerabilities
 
-Each CVE finding includes CVE ID, CVSS Score, description, available exploits with ExploitDB links, EPSS probability, CISAKEV status, and prioritized remediation steps.
+Each CVE finding includes CVE ID, CVSS Score, description, available exploits with ExploitDB links, EPSS probability, CISA KEV status, and prioritized remediation steps.
 
 ---
 
@@ -258,7 +258,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**Built with ❤️ and 🦀 Rust by [Soulcynics404](https://github.com/Soulcynics404)**v
+**Built with ❤️ and 🦀 Rust by [Soulcynics404](https://github.com/Soulcynics404)**
 
 If you find this useful, please ⭐ star the repo — it helps others discover it!
 
